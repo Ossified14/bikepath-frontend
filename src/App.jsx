@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom'
-import { Menu, X, Bike, User } from 'lucide-react'
+import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { Menu, X, Bike, User, LogOut } from 'lucide-react'
 import './App.css'
 import Login from './components/Login'
 import Register from './components/Register'
@@ -17,6 +17,22 @@ function Navigation() {
   const [authToken, setAuthToken] = useState(localStorage.getItem('token'));
   const navigate = useNavigate();
 
+  const loadNavbarData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    try {
+      const res = await getProfile();
+      const data = res.data || res;
+      if (data) {
+        setUserData(data);
+      }
+    } catch (err) {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) setUserData(JSON.parse(savedUser));
+    }
+  };
+
   useEffect(() => {
     const handleAuthChange = () => {
       const storedToken = localStorage.getItem('token');
@@ -29,9 +45,9 @@ function Navigation() {
     };
 
     window.addEventListener('authChange', handleAuthChange);
-    window.addEventListener('storage', handleAuthChange); // Untuk sinkronisasi antar tab
+    window.addEventListener('storage', handleAuthChange);
     
-    // Inisialisasi data jika token sudah ada
+    // Check initial state
     if (authToken) {
       loadNavbarData();
     }
@@ -42,26 +58,12 @@ function Navigation() {
     };
   }, []);
 
-  const loadNavbarData = async () => {
-    try {
-      const res = await getProfile();
-      // CodeIgniter response handling
-      const data = res.data || res;
-      if (data) {
-        setUserData(data);
-      }
-    } catch (err) {
-      const savedUser = localStorage.getItem('user');
-      if (savedUser) setUserData(JSON.parse(savedUser));
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setAuthToken(null);
     setUserData(null);
-    closeMenu();
+    setIsOpen(false);
     window.dispatchEvent(new Event('authChange'));
     navigate('/');
   };
@@ -77,12 +79,10 @@ function Navigation() {
           <span>BIKE<span>PATH</span></span>
         </Link>
 
-        {/* Hamburger Icon */}
         <div className="menu-icon" onClick={toggleMenu}>
           {isOpen ? <X size={32} /> : <Menu size={32} />}
         </div>
 
-        {/* Nav Menu */}
         <ul className={isOpen ? 'nav-menu active' : 'nav-menu'}>
           {!authToken ? (
             <>
@@ -120,7 +120,9 @@ function Navigation() {
                 </Link>
               </li>
               <li className="nav-item">
-                <button onClick={handleLogout} className="nav-links logout-btn">LOGOUT</button>
+                <button onClick={handleLogout} className="nav-links logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                   <LogOut size={18} /> LOGOUT
+                </button>
               </li>
             </>
           )}

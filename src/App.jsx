@@ -14,12 +14,13 @@ import { getProfile } from './services/bikepathService'
 function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [authToken, setAuthToken] = useState(localStorage.getItem('token'));
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const handleAuthChange = () => {
       const storedToken = localStorage.getItem('token');
+      setAuthToken(storedToken);
       if (storedToken) {
         loadNavbarData();
       } else {
@@ -27,17 +28,27 @@ function Navigation() {
       }
     };
 
-    window.addEventListener('storage', handleAuthChange);
-    handleAuthChange();
+    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('storage', handleAuthChange); // Untuk sinkronisasi antar tab
+    
+    // Inisialisasi data jika token sudah ada
+    if (authToken) {
+      loadNavbarData();
+    }
 
-    return () => window.removeEventListener('storage', handleAuthChange);
-  }, [token]);
+    return () => {
+      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
+    };
+  }, []);
 
   const loadNavbarData = async () => {
     try {
       const res = await getProfile();
-      if (res.status && res.data) {
-        setUserData(res.data);
+      // CodeIgniter response handling
+      const data = res.data || res;
+      if (data) {
+        setUserData(data);
       }
     } catch (err) {
       const savedUser = localStorage.getItem('user');
@@ -48,10 +59,11 @@ function Navigation() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setAuthToken(null);
     setUserData(null);
     closeMenu();
+    window.dispatchEvent(new Event('authChange'));
     navigate('/');
-    window.dispatchEvent(new Event('storage'));
   };
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -60,19 +72,19 @@ function Navigation() {
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link to={token ? "/map" : "/"} className="nav-logo" onClick={closeMenu}>
+        <Link to={authToken ? "/map" : "/"} className="nav-logo" onClick={closeMenu}>
           <Bike size={32} color="var(--z-blue)" />
           <span>BIKE<span>PATH</span></span>
         </Link>
 
-        {/* Hamburger Icon - Only for Mobile via CSS */}
+        {/* Hamburger Icon */}
         <div className="menu-icon" onClick={toggleMenu}>
           {isOpen ? <X size={32} /> : <Menu size={32} />}
         </div>
 
         {/* Nav Menu */}
         <ul className={isOpen ? 'nav-menu active' : 'nav-menu'}>
-          {!token ? (
+          {!authToken ? (
             <>
               <li className="nav-item">
                 <Link to="/" className="nav-links" onClick={closeMenu}>LOGIN</Link>
@@ -108,7 +120,7 @@ function Navigation() {
                 </Link>
               </li>
               <li className="nav-item">
-                <button onClick={handleLogout} className="nav-links" style={{ background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 'bold' }}>LOGOUT</button>
+                <button onClick={handleLogout} className="nav-links logout-btn">LOGOUT</button>
               </li>
             </>
           )}

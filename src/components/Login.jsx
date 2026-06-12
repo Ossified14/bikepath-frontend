@@ -22,7 +22,7 @@ const Login = () => {
             localStorage.setItem('user', JSON.stringify(data.data.user));
             setStatus({ loading: false, error: '', success: true });
             setTimeout(() => {
-                window.dispatchEvent(new Event('storage'));
+                window.dispatchEvent(new Event('authChange'));
                 navigate('/map');
             }, 1000);
         } catch (err) {

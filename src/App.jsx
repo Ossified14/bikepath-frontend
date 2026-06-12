@@ -88,11 +88,6 @@ function Navigation() {
                   </div>
                 </Link>
               </li>
-              <li className="nav-item">
-                <button onClick={handleLogout} className="nav-links logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#ff4b4b', fontWeight: 'bold' }}>
-                   <LogOut size={18} /> LOGOUT
-                </button>
-              </li>
             </>
           )}
         </ul>

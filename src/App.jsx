@@ -13,36 +13,27 @@ import { getProfile } from './services/bikepathService'
 
 function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState(() => {
+    // Ambil data user dari localStorage saat pertama kali load
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const navigate = useNavigate();
-  const location = useLocation(); // Mendeteksi perpindahan halaman
+  const location = useLocation();
   const token = localStorage.getItem('token');
 
-  // Efek ini akan jalan SETIAP KALI pindah halaman (location.pathname berubah)
+  // Hanya update userData jika token berubah atau ada event storage
   useEffect(() => {
-    if (token) {
-      loadNavbarData();
-    } else {
+    const saved = localStorage.getItem('user');
+    if (token && saved) {
+      setUserData(JSON.parse(saved));
+    } else if (!token) {
       setUserData(null);
     }
   }, [location.pathname, token]);
 
-  const loadNavbarData = async () => {
-    try {
-      const res = await getProfile();
-      // Menangani berbagai format respon Axios/CI3
-      const profileData = res.data?.data || res.data || res;
-      if (profileData && profileData.id) {
-        setUserData(profileData);
-      }
-    } catch (err) {
-      const savedUser = localStorage.getItem('user');
-      if (savedUser) setUserData(JSON.parse(savedUser));
-    }
-  };
-
   const handleLogout = () => {
-    localStorage.clear(); // Bersihkan semua
+    localStorage.clear();
     setUserData(null);
     setIsOpen(false);
     navigate('/');
@@ -98,7 +89,7 @@ function Navigation() {
                 </Link>
               </li>
               <li className="nav-item">
-                <button onClick={handleLogout} className="nav-links logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#ff4b4b' }}>
+                <button onClick={handleLogout} className="nav-links logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#ff4b4b', fontWeight: 'bold' }}>
                    <LogOut size={18} /> LOGOUT
                 </button>
               </li>

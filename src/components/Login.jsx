@@ -22,8 +22,8 @@ const Login = () => {
             localStorage.setItem('user', JSON.stringify(data.data.user));
             setStatus({ loading: false, error: '', success: true });
             setTimeout(() => {
+                window.dispatchEvent(new Event('storage'));
                 navigate('/map');
-                window.location.reload(); 
             }, 1000);
         } catch (err) {
             const msg = err.response?.data?.message || 'Invalid email or password!';

@@ -14,24 +14,44 @@ import { getProfile } from './services/bikepathService'
 function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [userData, setUserData] = useState(null);
+  const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
   useEffect(() => {
-    if (token) {
-      loadNavbarData();
-    }
+    const handleAuthChange = () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        loadNavbarData();
+      } else {
+        setUserData(null);
+      }
+    };
+
+    window.addEventListener('storage', handleAuthChange);
+    handleAuthChange();
+
+    return () => window.removeEventListener('storage', handleAuthChange);
   }, [token]);
 
   const loadNavbarData = async () => {
     try {
       const res = await getProfile();
-      if (res.data.status && res.data.data) {
-        setUserData(res.data.data);
+      if (res.status && res.data) {
+        setUserData(res.data);
       }
     } catch (err) {
       const savedUser = localStorage.getItem('user');
       if (savedUser) setUserData(JSON.parse(savedUser));
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUserData(null);
+    closeMenu();
+    navigate('/');
+    window.dispatchEvent(new Event('storage'));
   };
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -40,7 +60,7 @@ function Navigation() {
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link to="/map" className="nav-logo" onClick={closeMenu}>
+        <Link to={token ? "/map" : "/"} className="nav-logo" onClick={closeMenu}>
           <Bike size={32} color="var(--z-blue)" />
           <span>BIKE<span>PATH</span></span>
         </Link>
@@ -85,8 +105,10 @@ function Navigation() {
                       <User size={20} color="#fff" />
                     )}
                   </div>
-                  <span className="username-text" style={{ display: 'none' }}>{userData?.username || 'Rider'}</span>
                 </Link>
+              </li>
+              <li className="nav-item">
+                <button onClick={handleLogout} className="nav-links" style={{ background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 'bold' }}>LOGOUT</button>
               </li>
             </>
           )}

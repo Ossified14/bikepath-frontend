@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, Bike, User, LogOut } from 'lucide-react'
 import './App.css'
 import Login from './components/Login'
@@ -14,18 +14,26 @@ import { getProfile } from './services/bikepathService'
 function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [authToken, setAuthToken] = useState(localStorage.getItem('token'));
   const navigate = useNavigate();
+  const location = useLocation(); // Mendeteksi perpindahan halaman
+  const token = localStorage.getItem('token');
+
+  // Efek ini akan jalan SETIAP KALI pindah halaman (location.pathname berubah)
+  useEffect(() => {
+    if (token) {
+      loadNavbarData();
+    } else {
+      setUserData(null);
+    }
+  }, [location.pathname, token]);
 
   const loadNavbarData = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    
     try {
       const res = await getProfile();
-      const data = res.data || res;
-      if (data) {
-        setUserData(data);
+      // Menangani berbagai format respon Axios/CI3
+      const profileData = res.data?.data || res.data || res;
+      if (profileData && profileData.id) {
+        setUserData(profileData);
       }
     } catch (err) {
       const savedUser = localStorage.getItem('user');
@@ -33,58 +41,29 @@ function Navigation() {
     }
   };
 
-  useEffect(() => {
-    const handleAuthChange = () => {
-      const storedToken = localStorage.getItem('token');
-      setAuthToken(storedToken);
-      if (storedToken) {
-        loadNavbarData();
-      } else {
-        setUserData(null);
-      }
-    };
-
-    window.addEventListener('authChange', handleAuthChange);
-    window.addEventListener('storage', handleAuthChange);
-    
-    // Check initial state
-    if (authToken) {
-      loadNavbarData();
-    }
-
-    return () => {
-      window.removeEventListener('authChange', handleAuthChange);
-      window.removeEventListener('storage', handleAuthChange);
-    };
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setAuthToken(null);
+    localStorage.clear(); // Bersihkan semua
     setUserData(null);
     setIsOpen(false);
-    window.dispatchEvent(new Event('authChange'));
     navigate('/');
   };
 
-  const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
 
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link to={authToken ? "/map" : "/"} className="nav-logo" onClick={closeMenu}>
+        <Link to={token ? "/map" : "/"} className="nav-logo" onClick={closeMenu}>
           <Bike size={32} color="var(--z-blue)" />
           <span>BIKE<span>PATH</span></span>
         </Link>
 
-        <div className="menu-icon" onClick={toggleMenu}>
+        <div className="menu-icon" onClick={() => setIsOpen(!isOpen)}>
           {isOpen ? <X size={32} /> : <Menu size={32} />}
         </div>
 
         <ul className={isOpen ? 'nav-menu active' : 'nav-menu'}>
-          {!authToken ? (
+          {!token ? (
             <>
               <li className="nav-item">
                 <Link to="/" className="nav-links" onClick={closeMenu}>LOGIN</Link>
@@ -107,7 +86,6 @@ function Navigation() {
               <li className="nav-item">
                 <Link to="/friends" className="nav-links" onClick={closeMenu}>FRIENDS</Link>
               </li>
-
               <li className="nav-item">
                 <Link to="/profile" className="nav-links profile-trigger" onClick={closeMenu}>
                   <div className="profile-avatar">
@@ -120,7 +98,7 @@ function Navigation() {
                 </Link>
               </li>
               <li className="nav-item">
-                <button onClick={handleLogout} className="nav-links logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button onClick={handleLogout} className="nav-links logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#ff4b4b' }}>
                    <LogOut size={18} /> LOGOUT
                 </button>
               </li>
